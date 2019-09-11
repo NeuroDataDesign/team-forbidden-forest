@@ -1,1 +1,11 @@
-ebffabyfbbfbsfbka
+Random forest summery
+RF proceeds by building T decision trees via a series of recursive binary splits of the training data. The nodes in a tree are split into two daughter nodes
+by maximizing some notion of information gain, which typically reflects the reduction in class impurity
+of the resulting partitions.
+Nodes are recursively split until a stopping criteria is reached. Commonly, the recursion stops when either a maximum tree depth is reached, a minimum number of observations in a node is reached, or a
+node is completely pure with respect to class label.
+RF,in is a random matrix in which each of the
+columns has only one nonzero A d entry, and every column is required to be unique. Searching for the best split in this projected subspace
+amounts to searching over a random subset of the original features.
+Furthermore, supervised procedures run the risk of being overly greedy and reduce tree diversity, causing the model to overfit noise
+This is because the large space renders the probability of sampling discriminative random projections very small.
