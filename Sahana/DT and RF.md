@@ -15,8 +15,8 @@ Uses Divide and Conquer Rule
 -	Doesn’t work on new data? Overfitting. (Stop splitting when not statistically significant)
 -	DTs pick thresholding for continuous attributes.
 -	Cons: 
-    o	Only axis aligned splits
-    o	Greedy(may not find best tree)
+    - Only axis aligned splits
+    - Greedy(may not find best tree)
 
 # Random Forest:
 Grow K different trees on your training set.
