@@ -4,11 +4,11 @@ Uses Divide and Conquer Rule
 -	The data is split until homogeneity, i.e purity in the data set is reached.
 -	Tree with the labels at the leaf nodes. Does not need to be balanced, just that it needs to be pure.
 -	ID3 Algorithm: 
-    o	Find best attribute A for splitting the training set
-    o	A is now the decision attribute to the node
-    o	For each value of A create a child node
-    o	Split the training data to the child nodes.
-    o	For each child node/subset – if pure, then stop else repeat the steps.
+    - Find best attribute A for splitting the training set
+    - A is now the decision attribute to the node
+    - For each value of A create a child node
+    - Split the training data to the child nodes.
+    - For each child node/subset – if pure, then stop else repeat the steps.
 -	We essentially need to pick an attribute which splits the data such that it is heavily biased either to the positive or negative.
 -	Pick best attribute by computing gain of the attribute.
 -	Can always classify training sets perfectly – singleton = pure
