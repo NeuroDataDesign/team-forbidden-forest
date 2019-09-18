@@ -6,7 +6,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-L
 4. Run the following command to download Annaconda3
 wget https://repo.continuum.io/archive/Anaconda3-2019.07-Linux-x86_64.sh
 Run the following command to unzip and install the package
-bash Anaconda3-(the version you downloaded)-Linux-x86_64.sh
+bash Anaconda3-2019.07-Linux-x86_64.sh
 Run the following command to reset the default path
 source ~/.bashrc
 Run the following command to install jupyter notebook
