@@ -1,4 +1,5 @@
-1)	Intro:
+# Intro:
+
 Operating on the nearest neighbour might not always be desirable.
 Measurement of error modelling – assuming that x’s are noisy data that are true but unobserved. Better to assume the noise than a noise free measurement. Since using kernel regression on noise-free measurement is useless it promotes to understand the latent structure of the data. Performance increases when only learning the structure of x explicit of the label y.
 (Geodesic distance – shortest path considering a curved surface)
@@ -13,12 +14,15 @@ Splitting criteria is introduced – Fast BIC -> computation of BIC for gaussian
 (gaussian mixture model?)(Embedding?)
 URerF find nearest neighbour in low dimensions spaces even amongst the noise better than most algorithms.
 
-2)	Related work:
-Steps for preserving and estimation geodesic distances : 1) Estimate geodesic distance in the original manifold 2)All-pair shortest path is computed 3) points are embedded into a lower dimensional space to preserve the distances.
+# Related work:
+Steps for preserving and estimation geodesic distances : 
+1) Estimate geodesic distance in the original manifold 2)
+All-pair shortest path is computed 
+3)points are embedded into a lower dimensional space to preserve the distances.
 UMAP – new algorithm for dimensionality reduction. The process is weighted k-nearest neighbors and embed into a lower dimension through force directed layout algo.
 In comparison to random projection forest, the splits are optimized and uses a forest of many trees.
 
-Unsupervised randomer forests:
+# Unsupervised randomer forests:
 Distinction b/w random forests – new fast BIC splitting criterion, “ramdomer” because the splitting methods are based on random sparse linear combinations of the features used to strengthen each tree.
 Proximity matrix from random forests?
 
