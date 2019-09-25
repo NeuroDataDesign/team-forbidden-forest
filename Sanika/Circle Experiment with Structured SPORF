@@ -1,0 +1,10 @@
+Current working of SPORF on Structured data: Circle experiment
+
+1)	This is a two class classification experiment from points on a circle which makes the data dependent and hence structured.
+2)	Sequences are chosen at random and are non adjacent.
+3)	Two classes, 0/1: In 1 class, the sequences taking value 1 are of length 4 and 6 while in class 0, both sequences have equal length
+4)	This forms a structured data for classes, as the sequences are a part of the circle, each point has dependency on one another.
+5)	The experiments aim is to compare the performance of SPORF for such structured data against other classifiers and this is done through comparing the mean square error after classification.
+6)	I played around with the size of data and found various performance results.
+
+ 
