@@ -1,1 +1,36 @@
-ebffabyfbbfbsfbka
+Best Clustering algorithm also depend upon type of data
+
+K-Means
+Adjusted Rand Score: 0.7195837484778037
+
+AffinityPropagation
+The main drawbacks of K-Means and similar algorithms are having to select the number of clusters, and choosing the initial set of points. Affinity Propagation, instead, takes as input measures of similarity between pairs of data points, and simultaneously considers all data points as potential exemplars. Real-valued messages are exchanged between data points until a high-quality set of exemplars and corresponding clusters gradually emerges.
+at preference= -20
+Adjusted Rand Score: 0.532611742254823
+
+MeanShift and bandwidth = 1.1
+Mean shift cleverly exploits the density of the points in an attempt to generate a reasonable number of clusters. The kernel bandwidth value can often times be chosen based on some domain-specific knowledge.
+Adjusted Rand Score: 0.36571892448421967
+
+SpectralClustering 
+https://towardsdatascience.com/spectral-clustering-for-beginners-d08b7d25b4d8
+
+
+
+
+
+
+Make_blobs
+
+rand score compares predicted and actual clusters in the dataset. 
+
+ Gaussian mixture model is a probabilistic model that assumes all the data points are generated from a mixture of a finite number of Gaussian distributions with unknown parameters. One can think of mixture models as generalizing k-means clustering to incorporate information about the covariance structure of the data as well as the centers of the latent Gaussians.
+
+
+To do things
+Gaussian mixture, DBSCAN
+noice
+
+
+
+
