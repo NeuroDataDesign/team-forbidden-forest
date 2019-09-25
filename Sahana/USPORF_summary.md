@@ -50,7 +50,7 @@ min- parent (cardinality of the smallest node)
 mtry (number of features to test at each node)
 --Geodesic precision using URerF is unaffected by changes in hyperparameters.
 Other algorithms achieve a higher geodesic recall than URerF when there is no noise dimensions added, but degrade much more quickly than URerF upon the addition of noise dimensions.
-## Discussion
+## 5.Discussion
 1) Proposed a geodesic distance learning method using URerF
 2) Proposed new splitting criteria - Fast-BIC
 3) Found URerF to be robust to noise dimensions
