@@ -14,20 +14,32 @@ Algorithms:
 - One-Class SVM, `sklearn.svm.OneClassSVM`
 - Isolation Forest, `sklearn.ensemble.IsolationForest`
 - Local Outlier Factor (LOF), `sklearn.neighbors.LocalOutlierFactor`
+- Extended Isolation Forest (EIF), `iso`
+- Unsupervised Sparse Projection Oblique Randomer Forest(SPORF), 
+`UnsupervisedRandomForest`
 
 Here are the update in this example:
 - Change the datasets from two to three informative dimensions
 - Take dimensional noise into account
+- Add EIF and USPORF algorithms
 - Add the quatitative parameters to compare the algorithms performance
     - `accuracy_score`: to measure the anomaly detection ability
     - `roc_curve`: to visualize the operating characteristic (ROC) curve 
     (tpr vs. fpr)
     - `roc_auc_score`: to calculate the area under ROC curve
     
-Note: 
+Note:
 Only the algorithm that has `decision_function` can compute `roc_curve`
 and `roc_auc_score`. Thus, we still lack important parameters to compare the 
-Local outlier factor against other algorithms.
+LOF, EIF, and USPORF against other algorithms.
+
+How to predict outliers in EIF and USPORF:
+Since EIF and SPORF are not in sklearn, they don't have `fit.predict` 
+function. I sort the `compute_paths` 
+- For EIF, I sort the average root length score (`compute_paths`). 
+The longest average path data will be outliers
+- For USPORF, I sort the row sum similar matrix (`sim_mat.sum`). 
+And the highest score data will be inliers
 
 Result and disscussion:
 The figures show the outlier detection performance and visualization. 
@@ -44,10 +56,15 @@ in high dimensional noise ``d_noise = 10``. However, since robust
 covariance creates a ellptical envelope for inliers, we need more test 
 on an inlier data that is not in a elliptical shape.
 
+Possible Improvement:
+Find the way to calculate `decision_function` from EIF and USPORF
+
 """
 
+%matplotlib inline
+
 #-------------------------------------------------------------------
-# Graphing and calculation packages 
+# Graphing and calculation packages
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import matplotlib.pyplot as plt
@@ -60,6 +77,8 @@ from sklearn import svm
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
+import eif as iso
+from rerf.urerf import UnsupervisedRandomForest
 
 # Performance measurement packages
 from sklearn.metrics import accuracy_score
@@ -160,8 +179,8 @@ datasets3D = [X_lin, X_hex, X_sph, X_gau, X_misaligned]
 y_true = np.concatenate([np.ones(n_inliers), -np.ones(n_outliers)], axis=0)
 # label 1 as inliers, -1 as outliers
 
-#-------------------------------------------------------------------
-# Define algorithm to be compared
+
+# Define algorithm to be compared -------------------------------
 anomaly_algorithms = [
     ("Robust covariance", EllipticEnvelope(contamination=outliers_fraction)),
     (
@@ -183,11 +202,27 @@ anomaly_algorithms = [
             n_neighbors=35, contamination=outliers_fraction, novelty=False
         ),
     ),
+    (
+        "Extended IF",
+        iso.iForest(datasets3D[0], ntrees=500, sample_size=255, ExtensionLevel=1),
+    ),
+    (
+        "USPORF",
+        UnsupervisedRandomForest(
+            feature_combinations="auto",
+            max_depth=None,
+            max_features="auto",
+            min_samples_split="auto",
+            n_estimators=500,
+            n_jobs=None,
+            projection_matrix="RerF",
+        ),
+    ),
 ]
 
-#-------------------------------------------------------------------
-# Plot
-plt.figure(figsize=((len(anomaly_algorithms) + 1) * 2.5 + 1, len(datasets3D) * 2.5 + 1))
+
+# Plot -----------------------------
+plt.figure(figsize=((len(anomaly_algorithms) + 1) * 2 + 1, len(datasets3D) * 2 + 1))
 plt.subplots_adjust(
     left=0.02, right=0.98, bottom=0.001, top=0.98, wspace=0.05, hspace=0.01
 )
@@ -218,12 +253,40 @@ for i_dataset3D, X in enumerate(datasets3D):
     algo_index = 0
     for name, algorithm in anomaly_algorithms:
         t0 = time.time()
-        algorithm.fit(X)
+
+        if name == "Extended IF":  # Extended IF doesn't has fit function
+            algorithm = iso.iForest(
+                X, ntrees=500, sample_size=min(256, len(X)), ExtensionLevel=d_noise + 2
+            )
+        else:
+            algorithm.fit(X)
+        t1 = time.time()
 
         # fit the data and tag outliers
         if name == "Local Outlier Factor":
             y_pred = algorithm.fit_predict(X)
-            
+
+        elif name == "Extended IF":  # Extended IF doesn't have predict function
+            Score = algorithm.compute_paths(X_in=X)  # compute anomaly score
+            sE = np.argsort(Score)
+            indicesE = sE[
+                -int(np.ceil(outliers_fraction * X.shape[0])) :
+            ]  # outlier indices
+            y_pred = np.ones(X.shape[0])
+            y_pred[indicesE] = -1
+            y_pred = y_pred.astype(int)  # convert float to int array
+
+        elif name == "USPORF":  # USPORF doesn't have predict function
+            sim_mat = algorithm.transform()  # create similarity matrix
+            sim_sum = sim_mat.sum(axis=1)
+            sU = np.argsort(sim_sum)
+            indicesU = sU[
+                : int(np.floor(outliers_fraction * X.shape[0]))
+            ]  # outlier indeces
+            y_pred = np.ones(X.shape[0])
+            y_pred[indicesU] = -1
+            y_pred = y_pred.astype(int)  # convert float to int array
+
         else:
             y_pred = algorithm.fit(X).predict(X)
             probas_ = algorithm.fit(X).decision_function(X)
@@ -239,8 +302,6 @@ for i_dataset3D, X in enumerate(datasets3D):
 
         # compute the accuracy
         acc = accuracy_score(y_true, y_pred)
-        
-        t1 = time.time()
 
         # add data plot
         ax = plt.subplot(
@@ -249,7 +310,7 @@ for i_dataset3D, X in enumerate(datasets3D):
         ax.axis("on")
         if i_dataset3D == 0:
             plt.title(
-                str(algo_index + 1) + ") " + name, size=15, color="black", weight="bold"
+                str(algo_index + 1) + ") " + name, size=10, color="black", weight="bold"
             )  # use function's name for a title
         colors = np.array(["#377eb8", "#ff7f00"])
         # color plot ('blue' = outlier, 'orange'=inlier)
@@ -275,31 +336,33 @@ for i_dataset3D, X in enumerate(datasets3D):
         ax.zaxis.set_ticklabels([])
         algo_index += 1
         plot_num += 1
-        
+
     # add ROC plot
     ax = plt.subplot(len(datasets3D), len(anomaly_algorithms) + 1, plot_num)
-    
+
     if i_dataset3D == 0:
         plt.title("ROC", size=15, color="black", weight="bold")
         # lebel the decision_function's thresholds
         plt.scatter([], [], marker="x", color="black", label="thresholds")
-        
-        
-    for algo_index in range(len(anomaly_algorithms)-1): # exclude LOF
-        
+
+    for algo_index in range(len(anomaly_algorithms) - 3):
+        ## exclude LOF, EIF, and USPORF
+
         if i_dataset3D == 0:
             ax.plot(
                 list_fpr[algo_index],
                 list_tpr[algo_index],
                 label="algo "
-                + str(algo_index + 1) + ")"
+                + str(algo_index + 1)
+                + ")"
                 + (" AUC %.2f" % list_AUC[algo_index]).lstrip("0"),
             )
         else:
             ax.plot(
                 list_fpr[algo_index],
                 list_tpr[algo_index],
-                label=str(algo_index + 1) + ")"
+                label=str(algo_index + 1)
+                + ")"
                 + (" %.2f" % list_AUC[algo_index]).lstrip("0"),
             )
         ax.scatter(

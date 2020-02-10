@@ -13,8 +13,12 @@ Algorithms:
 - One-Class SVM, `sklearn.svm.OneClassSVM`
 - Isolation Forest, `sklearn.ensemble.IsolationForest`
 - Local Outlier Factor (LOF), `sklearn.neighbors.LocalOutlierFactor`
+- Extended Isolation Forest (EIF), `iso`
+- Unsupervised Sparse Projection Oblique Randomer Forest(SPORF), 
+`UnsupervisedRandomForest`
 
 Here are the update in this example:
+- Add EIF and USPORF algorithms
 - Add the quatitative parameters to compare the algorithms performance
     - `accuracy_score`: to measure the anomaly detection ability
     - `roc_curve`: to visualize the operating characteristic (ROC) curve 
@@ -24,7 +28,15 @@ Here are the update in this example:
 Note: 
 Only the algorithm that has `decision_function` can compute `roc_curve`
 and `roc_auc_score`. Thus, we still lack important parameters to compare the 
-Local outlier factor against other algorithms.
+LOF, EIF, USPORF against other algorithms.
+
+How to predict outliers in EIF and USPORF:
+Since EIF and SPORF are not in sklearn, they don't have `fit.predict` 
+function. I sort the `compute_paths` 
+- For EIF, I sort the average root length score (`compute_paths`). 
+The longest average path data will be outliers
+- For USPORF, I sort the row sum similar matrix (`sim_mat.sum`). 
+And the highest score data will be inliers
 
 Result and disscussion:
 The figures show the outlier detection performance and visualization. 
@@ -43,6 +55,7 @@ on an inlier data that is not in a elliptical shape.
 
 """
 
+
 import time
 
 import numpy as np
@@ -54,6 +67,8 @@ from sklearn.datasets import make_moons, make_blobs
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
+import eif as iso
+from rerf.urerf import UnsupervisedRandomForest
 
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import roc_auc_score
@@ -68,16 +83,6 @@ n_samples = 300
 outliers_fraction = 0.15
 n_outliers = int(outliers_fraction * n_samples)
 n_inliers = n_samples - n_outliers
-
-# define outlier/anomaly detection methods to be compared
-anomaly_algorithms = [
-    ("Robust covariance", EllipticEnvelope(contamination=outliers_fraction)),
-    ("One-Class SVM", svm.OneClassSVM(nu=outliers_fraction, kernel="rbf",
-                                      gamma="scale")),
-    ("Isolation Forest", IsolationForest(contamination=outliers_fraction,
-                                         behaviour = "new", random_state=42)),
-    ("Local Outlier Factor", LocalOutlierFactor(
-        n_neighbors=35, contamination=outliers_fraction))]
 
 # Define datasets
 blobs_params = dict(random_state=0, n_samples=n_inliers, n_features=2)
@@ -95,11 +100,38 @@ datasets = [
 # label the ground truth
 y_true = np.concatenate([np.ones(n_inliers), -np.ones(n_outliers)], axis=0)
 
+# define outlier/anomaly detection methods to be compared
+anomaly_algorithms = [
+    ("Robust covariance", EllipticEnvelope(contamination=outliers_fraction)),
+    ("One-Class SVM", svm.OneClassSVM(nu=outliers_fraction, kernel="rbf",
+                                      gamma="scale")),
+    ("Isolation Forest", IsolationForest(contamination=outliers_fraction,
+                                         behaviour = "new", random_state=42)),
+    ("Local Outlier Factor", LocalOutlierFactor(
+        n_neighbors=35, contamination=outliers_fraction)),
+    (
+        "Extended IF",
+        iso.iForest(datasets[0], ntrees=500, sample_size=255, ExtensionLevel=1),
+    ),
+    (
+        "USPORF",
+        UnsupervisedRandomForest(
+            feature_combinations="auto",
+            max_depth=None,
+            max_features="auto",
+            min_samples_split="auto",
+            n_estimators=500,
+            n_jobs=None,
+            projection_matrix="RerF",
+        ),
+    ),
+]
+
 # Compare given classifiers under given settings
 xx, yy = np.meshgrid(np.linspace(-7, 7, 150),
                      np.linspace(-7, 7, 150))
 
-plt.figure(figsize=((len(anomaly_algorithms)+1) * 2.2+1 + 3, len(datasets)*2.2+1))
+plt.figure(figsize=((len(anomaly_algorithms)+1) * 2+1 + 3, len(datasets)*2.2+1))
 plt.subplots_adjust(left=.02, right=.98, bottom=.001, top=.96, wspace=.05,
                     hspace=.01)
 
@@ -119,33 +151,63 @@ for i_dataset, X in enumerate(datasets):
     algo_index = 0
     for name, algorithm in anomaly_algorithms:
         t0 = time.time()
-        algorithm.fit(X)
+
+        if name == "Extended IF":  # Extended IF doesn't has fit function
+            algorithm = iso.iForest(
+                X, ntrees=500, sample_size=min(256, len(X)), ExtensionLevel=1
+            ) 
+            # Extension Level = 1 means the decision tree separation use us both
+            # x and y determine the root at the same time
+        else:
+            algorithm.fit(X)
         t1 = time.time()
-        
+
         # fit the data and tag outliers
         if name == "Local Outlier Factor":
             y_pred = algorithm.fit_predict(X)
+
+        elif name == "Extended IF":  # Extended IF doesn't have predict function
+            Score = algorithm.compute_paths(X_in=X)  # compute anomaly score
+            sE = np.argsort(Score)
+            indicesE = sE[
+                -int(np.ceil(outliers_fraction * X.shape[0])) :
+            ]  # outlier indices
+            y_pred = np.ones(X.shape[0])
+            y_pred[indicesE] = -1
+            y_pred = y_pred.astype(int)  # convert float to int array
+
+        elif name == "USPORF":  # USPORF doesn't have predict function
+            sim_mat = algorithm.transform()  # create similarity matrix
+            sim_sum = sim_mat.sum(axis=1)
+            sU = np.argsort(sim_sum)
+            indicesU = sU[
+                : int(np.floor(outliers_fraction * X.shape[0]))
+            ]  # outlier indeces
+            y_pred = np.ones(X.shape[0])
+            y_pred[indicesU] = -1
+            y_pred = y_pred.astype(int)  # convert float to int array
+
         else:
             y_pred = algorithm.fit(X).predict(X)
-            
-            # store ROC plot 
-            probas_ = algorithm.fit(X).decision_function(X) 
-            ## LOF does not implement decision_function
-            AUC = roc_auc_score(y_true, probas_) # AUC
+            probas_ = algorithm.fit(X).decision_function(X)
+            ## LOF doesn't have decision_function
+            AUC = roc_auc_score(y_true, probas_)
             fpr, tpr, thresholds = roc_curve(y_true, probas_)
             thresh_index = np.where(abs(thresholds) == min(abs(thresholds)))[0][0]
+            # store ROC curve
             list_AUC.append(AUC)
             list_fpr.append(fpr)
             list_tpr.append(tpr)
-            list_thresh.append(thresh_index)   
-        
+            list_thresh.append(thresh_index)
+
         acc = accuracy_score(y_true, y_pred) # acuracy
         plt.subplot(len(datasets), len(anomaly_algorithms)+1, plot_num)
         if i_dataset == 0:
             plt.title(str(algo_index + 1) + ") " + name, size=15, weight="bold")
 
         # plot the levels lines and the points
-        if name != "Local Outlier Factor":  # LOF does not implement predict
+#         if name != "Local Outlier Factor":  
+        if algo_index <= 2: # only the first three algorithms hase predict function
             Z = algorithm.predict(np.c_[xx.ravel(), yy.ravel()])
             Z = Z.reshape(xx.shape)
             plt.contour(xx, yy, Z, levels=[0], linewidths=2, colors='black')
@@ -179,7 +241,7 @@ for i_dataset, X in enumerate(datasets):
         # lebel the decision_function's thresholds
         plt.scatter([], [], marker="x", color="black", label="thresholds")
         
-    for algo_index in range(len(anomaly_algorithms)-1): # exclude LOF
+    for algo_index in range(len(anomaly_algorithms)-3): # exclude last 3 algo
         
         if i_dataset == 0:
             plt.plot(list_fpr[algo_index], list_tpr[algo_index],
