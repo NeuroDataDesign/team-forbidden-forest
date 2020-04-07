@@ -25,7 +25,7 @@ def c_factor(n):
     return 2.0*(np.log(n-1)+0.5772156649) - (2.0*(n-1.)/(n*1.0))
 
 
-def FastBIC(Z_arr):
+def FastBIC(Z_arr):  # USPORF's algo 3
     """
     Calculate the splitPoint and min BIC score from 1D array
     """
@@ -77,7 +77,7 @@ def projectA(dim, d, Lambda=1/20):
         return A
 
 
-class UForest(object):  # USPORF algo 1
+class UForest(object):
     """
     Creates an iForest object. This object holds the data as well as
     the trained trees (iTree objects).
@@ -154,26 +154,6 @@ class UForest(object):  # USPORF algo 1
             # Average of path length travelled by the point in all trees.
             S[i] = 2.0**(-Eh/self.c)  # higher score, more anomaly
         return S
-    
-#     def transform(self, return_sparse=False):
-#         """
-#         Transform dataset into an affinity matrix / similarity matrix.
-
-#         Returns
-#         -------
-#         affinity_matrix : sparse matrix, shape=(n_samples, n_samples)
-#         """
-#         check_is_fitted(self, "forest_")
-
-#         pair_mat = self.forest_._return_pair_mat()
-
-#         sparse_mat = pair_mat_to_sparse(pair_mat, self.X_.shape[0],
-#                                         self.n_estimators)
-
-#         if return_sparse:
-#             return sparse_mat
-#         else:
-#             return sparse_mat.toarray()
 
 
 class Node(object):
@@ -195,7 +175,7 @@ class Node(object):
         project matrix column j
     splitPoint: float
         splitPoint/ split threshold
-    lef: Node object
+    left: Node object
         Left child node.
     right: Node object
         Right child node.
@@ -214,52 +194,28 @@ class Node(object):
         self.ntype = node_type
 
 
-class iTree(object):
+class iTree(object):  # USPORF's algo 1
     """
     A single tree in the forest that is build using a unique subsample.
     Attributes
     ----------
-    e: int
-        Depth of tree
     X: list
         Data present at the root node of this tree.
-    size: int
-        Size of the dataset.
-    dim: int
-        Dimension of the dataset.
-    Q: list
-        List of ordered integers smaller than dim.
-    l: int
-        Maxium depth a tree can reach before its creation is terminated.
-    Aj: list
-        project matrix column j
-    splitPoint: float
-        splitPoint/ split threshold
-    LeafNodes: int
-        The number of external nodes this tree has.
-    root: Node object
-        At each node create a new tree.
+    e: int
+        Depth of a current node
+    max_depth:
+        length limit of the tree node
+    d: int
+        number of feature in a projected matrix `A`
+    Lambda: float
+        ratio of non-zero lement (-1 and 1) in a projected matrix `A`
+
     Methods
     -------
-    make_tree(X, e, l)
+    make_tree(X, e)
         Builds the tree recursively from a given node. Returns a Node object.
     """
     def __init__(self, X, e, max_depth, d, Lambda):
-        """
-        iTree(X, e, max_depth, d=None, Lambda=1/20)
-        Create a tree
-        Parameters
-        ----------
-        X : list of list of floats
-            Subsample of training data. |X| = iForest.max_samples.
-        e : int
-            Depth of the tree as it is being traversed down. e <= l.
-        d : int
-            project features combination
-        max_depth : int
-            The maximum depth the tree can reach before its creation
-            is terminated.
-        """
         self.max_depth = max_depth
         self.Lambda = Lambda
         self.d = d
