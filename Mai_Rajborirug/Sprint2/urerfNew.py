@@ -39,44 +39,6 @@ def projectA(dim, d, Lambda=1/20):
         return A
 
 
-# def FastBIC(Z_arr):  # USPORF's algo 3
-#     """
-#     Calculate the splitPoint and min BIC score from 1D array
-#     """
-#     N = Z_arr.shape[0]
-#     Z_ind = np.argsort(Z_arr)
-#     minBIC = np.inf
-
-#     for s in range(2, (N+1)-2):
-#         Curr_1 = Z_arr[Z_ind[:s]]
-#         Curr_2 = Z_arr[Z_ind[s:]]
-#         var_1 = np.var(Curr_1)
-#         var_2 = np.var(Curr_2)
-#         if (var_1 == 0) or (var_2 == 0):
-#             continue  # ignore var = 0
-
-#         n_1 = s
-#         n_2 = N-s
-#         pi_1 = s/N
-#         pi_2 = (N-s)/N
-#         var_comb = (pi_1*var_1 + pi_2*var_2)
-#         BIC_diff_var = -2*(n_1*np.log(pi_1)
-#                            - n_1/2*np.log(2*np.pi*var_1)
-#                            + n_2*np.log(pi_2)
-#                            - n_2/2*np.log(2*np.pi*var_2))
-#         BIC_same_var = -2*(n_1*np.log(pi_1)
-#                            - n_1/2*np.log(2*np.pi*var_comb)
-#                            + n_2*np.log(pi_2)
-#                            - n_2/2*np.log(2*np.pi*var_comb))
-#         BIC_curr = min(BIC_diff_var, BIC_same_var)
-
-#         if BIC_curr < minBIC:
-#             minBIC = BIC_curr
-#             split_Point = (Z_arr[Z_ind[s-1]] + Z_arr[Z_ind[s]])/2
-
-#     return(split_Point, minBIC)    
-
-
 class UForest(object):
     """
     Creates an iForest object. This object holds the data as well as
